@@ -1,5 +1,8 @@
-using Microsoft.Data.Sqlite;
+using Infrastructure.Database;
 using MudBlazor.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
+
 using src.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(connectionString));
 // Add MudBlazor services
 builder.Services.AddMudServices();
 

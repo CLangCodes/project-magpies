@@ -6,21 +6,24 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        @* @if (_previewUrl != null)
-        {
-            <MudImage Src="@_previewUrl" Alt="Preview" Width="200px" />
-        }
-        else if (Thing?.ImageUrl != null)
-        {
-            <MudImage Src="@Thing.ImageUrl" Alt="Thing Image" Width="200px" />
-        } *@
-        <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
-
+        <MudCard>
+            <MudCardContent>
+                <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                <MudDivider />
+                <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+            </MudCardContent>
+            @if (Thing?.ImageUrl != null)
+            {
+                <MudCardMedia Image="@Thing.ImageUrl" Alt="Thing Image" Style="max-width: 300px; max-height: auto;" />
+                @* <MudImage Src="@Thing.ImageUrl" Alt="Thing Image" Width="400" /> *@
+            }
+            <MudCardActions>
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
+            </MudCardActions>
+        </MudCard>
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Submit</MudButton>

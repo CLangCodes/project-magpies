@@ -1,6 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
+<MudPopoverProvider @rendermode="InteractiveServer"/>
+<MudDialogProvider @rendermode="InteractiveServer"/>
+<MudSnackbarProvider @rendermode="InteractiveServer"/>
+<MudThemeProvider @rendermode="InteractiveServer" Theme="@_theme" IsDarkMode="_isDarkMode"/>
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>

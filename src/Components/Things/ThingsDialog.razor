@@ -2,6 +2,7 @@
 @using ProjectMagpie.Models
 
 @inject IRepository<Thing> ThingRepository
+@inject IWebHostEnvironment Env
 
 <MudDialog>
     <DialogContent>
@@ -10,12 +11,16 @@
         <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
         <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
         <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-        @if (Thing?.ImageUrl != null)
+        @* @if (_previewUrl != null)
+        {
+            <MudImage Src="@_previewUrl" Alt="Preview" Width="200px" />
+        }
+        else if (Thing?.ImageUrl != null)
         {
             <MudImage Src="@Thing.ImageUrl" Alt="Thing Image" Width="200px" />
-        }
-        <MudFileUpload @bind-Files="_file" />
-        
+        } *@
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
+
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Submit</MudButton>
@@ -37,30 +42,7 @@
     private string _description = string.Empty;
 
     private IBrowserFile? _file;
-
-    public class ThingImage : IBrowserFile
-    {
-        public string Name { get;}
-        public DateTimeOffset LastModified { get; }
-        public long Size { get; }
-        public string ContentType { get; }
-        public byte[] Content { get; }
-
-        public ThingImage(string name, DateTimeOffset lastModified, long size, string contentType, byte[] content)
-        {
-            Name = name;
-            LastModified = lastModified;
-            Size = size;
-            ContentType = contentType;
-            Content = content;
-        }
-
-        public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default)
-        {
-            // Return a dummy stream for testing purposes
-            return new MemoryStream(Content);
-        }
-    }
+    private string? _previewUrl;
 
     protected override void OnParametersSet()
     {
@@ -77,7 +59,21 @@
         
     }
 
-    private void Submit()
+    private async Task OnFilesChanged(IBrowserFile file)
+    {
+        _file = file;
+        if (_file == null)
+        {
+            _previewUrl = null;
+            return;
+        }
+        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        _previewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+    }
+
+    private async Task Submit()
     {
         if (Thing != null)
         {
@@ -87,31 +83,35 @@
             Thing.SoldFor = _soldFor;
             Thing.Description = _description;
 
-            ThingRepository.UpdateAsync(Thing);
+            bool isNew = Thing.Id == 0;
+            if (isNew)
+                await ThingRepository.AddAsync(Thing);
+            else
+                await ThingRepository.UpdateAsync(Thing);
+
+            if (_file != null)
+            {
+                if (!string.IsNullOrEmpty(Thing.ImageUrl))
+                {
+                    var oldPath = Path.Combine(Env.WebRootPath, Thing.ImageUrl);
+                    if (File.Exists(oldPath))
+                        File.Delete(oldPath);
+                }
+
+                var ext = Path.GetExtension(_file.Name);
+                var folder = Path.Combine(Env.WebRootPath, "ThingImages");
+                Directory.CreateDirectory(folder);
+                var path = Path.Combine(folder, $"{Thing.Id}{ext}");
+
+                await using var stream = File.Create(path);
+                await _file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
+
+                Thing.SetImageUrl(ext);
+                await ThingRepository.UpdateAsync(Thing);
+            }
         }
 
         MudDialog.Close(DialogResult.Ok(Thing));
-    }
-
-    @* private async Task OnFileSelected(ChangeEventArgs e)
-    {
-        var files = (Microsoft.AspNetCore.Components.Forms.IBrowserFile[])e.Value;
-        if (files.Length > 0)
-        {
-            var file = files[0];
-            var buffer = new byte[file.Size];
-            await file.OpenReadStream().ReadAsync(buffer);
-
-            // Save the image to a location and set the ImageUrl property
-            // For demonstration, we'll just set a placeholder URL
-            Thing?.SetImageUrl();
-        }
-        StateHasChanged();
-    } *@
-
-    private void CloseDialog()
-    {
-        Thing = null;
     }
 
     private void Cancel() => MudDialog.Cancel();

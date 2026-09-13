@@ -25,6 +25,14 @@
             <PropertyColumn Property="x => x.Cost" Title="Cost" Sortable="true" />
             <PropertyColumn Property="x => x.RestorationCost" Title="Restoration Cost" Sortable="true" />
             <PropertyColumn Property="x => x.SoldFor" Title="Sold For" Sortable="true" />
+            <TemplateColumn Title="Image">
+                <CellTemplate>
+                    @if (!string.IsNullOrEmpty(context.Item.ImageUrl))
+                    {
+                        <MudImage Src="@context.Item.ImageUrl" Alt="@context.Item.Name" Width="60" Height="60" ObjectFit="ObjectFit.Cover" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
             <TemplateColumn Title="Actions">
                 <CellTemplate>
                     <MudButton Variant="Variant.Filled"

@@ -38,6 +38,9 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
+Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "ThingImages"));
+app.UseStaticFiles();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

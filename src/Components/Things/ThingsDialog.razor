@@ -1,0 +1,71 @@
+@using ProjectMagpie.Database
+@using ProjectMagpie.Models
+
+@inject IRepository<Thing> ThingRepository
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+        <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+        <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+        <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+        <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Submit</MudButton>
+        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Thing? Thing { get; set; }
+
+    private string _name = string.Empty;
+    private decimal _cost = 0;
+    private decimal? _restorationCost = 0;
+    private decimal? _soldFor = 0;
+    private string _description = string.Empty;
+
+    
+    protected override void OnParametersSet()
+    {
+        if (Thing != null)
+        {
+            _name = Thing.Name;
+            _cost = Thing.Cost;
+            _restorationCost = Thing.RestorationCost;
+            _soldFor = Thing.SoldFor;
+            _description = Thing.Description;
+        } else {
+            Thing = new Thing();
+        }
+        
+    }
+
+    private void Submit()
+    {
+        if (Thing != null)
+        {
+            Thing.Name = _name;
+            Thing.Cost = _cost;
+            Thing.RestorationCost = _restorationCost;
+            Thing.SoldFor = _soldFor;
+            Thing.Description = _description;
+
+            ThingRepository.UpdateAsync(Thing);
+        }
+
+        MudDialog.Close(DialogResult.Ok(Thing));
+    }
+
+    private void CloseDialog()
+    {
+        Thing = null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

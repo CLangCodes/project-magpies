@@ -4,25 +4,109 @@
 @page "/things"
 
 @inject IRepository<Thing> ThingRepository
+@inject IDialogService DialogService
 
-<MudDataGrid T="Thing"
-             Items="@Things"
-             >
-    <Columns>
-        <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
-        <PropertyColumn Property="x => x.Description" Title="Description" Sortable="true" />
-        <PropertyColumn Property="x => x.Cost" Title="Cost" Sortable="true" />
-        <PropertyColumn Property="x => x.RestorationCost" Title="Restoration Cost" Sortable="true" />
-        <PropertyColumn Property="x => x.SoldFor" Title="Sold For" Sortable="true" />
-    </Columns>
-</MudDataGrid>
+@if (!isLoading)
+{
+    
+    <MudButton Variant="Variant.Filled"
+            Color="Color.Primary"
+            Class="mb-4"
+            Disabled="isLoading"
+            OnClick="CreateThingAsync">
+        New Thing
+    </MudButton>
+    <MudDataGrid T="Thing"
+                Items="@Things"
+                >
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
+            <PropertyColumn Property="x => x.Description" Title="Description" Sortable="true" />
+            <PropertyColumn Property="x => x.Cost" Title="Cost" Sortable="true" />
+            <PropertyColumn Property="x => x.RestorationCost" Title="Restoration Cost" Sortable="true" />
+            <PropertyColumn Property="x => x.SoldFor" Title="Sold For" Sortable="true" />
+            <TemplateColumn Title="Actions">
+                <CellTemplate>
+                    <MudButton Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                Disabled="isLoading"
+                                OnClick="@(() => OpenThingDialog(context.Item))">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                Disabled="isLoading"
+                                OnClick="@(() => OpenDeleteDialog(context.Item))">
+                        Delete
+                    </MudButton>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+}
 
 @code {
     [Parameter]
     public IEnumerable<Thing> Things { get; set; } = new List<Thing>();
+    bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
         Things = await ThingRepository.GetAllAsync();
+        isLoading = false;
+    }
+    /// <summary>
+    /// Opens the dialog for creating or editing a Thing. If a Thing is provided, it will be edited; if null, a new Thing will be created.
+    /// </summary>
+    /// <param name="thing"></param>
+    /// <returns></returns>
+    private async Task OpenThingDialog(Thing? thing = null)
+    {
+        var parameters = new DialogParameters<ThingsDialog>{ {dialog => dialog.Thing, thing } };
+        if (thing != null)
+        {
+            parameters.Add("Thing", thing);
+        }
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ThingsDialog>("Create Thing", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            // Refresh the list of things after creating a new one
+            Things = await ThingRepository.GetAllAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateThingAsync()
+    {
+        var parameters = new DialogParameters<ThingsDialog>();
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ThingsDialog>("Create Thing", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            // Refresh the list of things after creating a new one
+            Things = await ThingRepository.GetAllAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenDeleteDialog(Thing thing)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Thing",
+            $"Are you sure you want to delete '{thing.Name}'?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await ThingRepository.DeleteAsync(thing.Id);
+            Things = await ThingRepository.GetAllAsync();
+            StateHasChanged();
+        }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 
 using src.Components;
+using ProjectMagpie.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
 // Add MudBlazor services
 builder.Services.AddMudServices();
 

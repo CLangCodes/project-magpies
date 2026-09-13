@@ -1,0 +1,27 @@
+@using ProjectMagpie.Database
+@using ProjectMagpie.Models
+@rendermode InteractiveServer
+
+@inject IRepository<Thing> ThingRepository
+
+<MudDataGrid T="Thing"
+             Items="@Things"
+             >
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
+        <PropertyColumn Property="x => x.Description" Title="Description" Sortable="true" />
+        <PropertyColumn Property="x => x.Cost" Title="Cost" Sortable="true" />
+        <PropertyColumn Property="x => x.RestorationCost" Title="Restoration Cost" Sortable="true" />
+        <PropertyColumn Property="x => x.SoldFor" Title="Sold For" Sortable="true" />
+    </Columns>
+</MudDataGrid>
+
+@code {
+    [Parameter]
+    public IEnumerable<Thing> Things { get; set; } = new List<Thing>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Things = await ThingRepository.GetAllAsync();
+    }
+}

@@ -10,6 +10,12 @@
         <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
         <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
         <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+        @if (Thing?.ImageUrl != null)
+        {
+            <MudImage Src="@Thing.ImageUrl" Alt="Thing Image" Width="200px" />
+        }
+        <MudFileUpload @bind-Files="_file" />
+        
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Submit</MudButton>
@@ -30,7 +36,32 @@
     private decimal? _soldFor = 0;
     private string _description = string.Empty;
 
-    
+    private IBrowserFile? _file;
+
+    public class ThingImage : IBrowserFile
+    {
+        public string Name { get;}
+        public DateTimeOffset LastModified { get; }
+        public long Size { get; }
+        public string ContentType { get; }
+        public byte[] Content { get; }
+
+        public ThingImage(string name, DateTimeOffset lastModified, long size, string contentType, byte[] content)
+        {
+            Name = name;
+            LastModified = lastModified;
+            Size = size;
+            ContentType = contentType;
+            Content = content;
+        }
+
+        public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default)
+        {
+            // Return a dummy stream for testing purposes
+            return new MemoryStream(Content);
+        }
+    }
+
     protected override void OnParametersSet()
     {
         if (Thing != null)
@@ -61,6 +92,22 @@
 
         MudDialog.Close(DialogResult.Ok(Thing));
     }
+
+    @* private async Task OnFileSelected(ChangeEventArgs e)
+    {
+        var files = (Microsoft.AspNetCore.Components.Forms.IBrowserFile[])e.Value;
+        if (files.Length > 0)
+        {
+            var file = files[0];
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream().ReadAsync(buffer);
+
+            // Save the image to a location and set the ImageUrl property
+            // For demonstration, we'll just set a placeholder URL
+            Thing?.SetImageUrl();
+        }
+        StateHasChanged();
+    } *@
 
     private void CloseDialog()
     {

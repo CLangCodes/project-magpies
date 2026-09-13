@@ -7,4 +7,8 @@ public class Thing
     public decimal? RestorationCost { get; set; }
     public decimal? SoldFor { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+
+    public void SetImageUrl() => ImageUrl = "ThingImages/" + Id + ".jpg";
+    public void DeleteImageUrl() => ImageUrl = null; 
 }

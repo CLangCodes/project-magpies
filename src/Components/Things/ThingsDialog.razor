@@ -7,19 +7,28 @@
 <MudDialog>
     <DialogContent>
         <MudCard>
-            <MudCardContent>
-                <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-                <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-                <MudDivider />
-                <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-                <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
-                <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+            <MudCardContent Style="display: flex; flex-direction: row; gap: 16px;">
+                <MudElement Style="flex: 0 0 200px;">
+                    @if (!string.IsNullOrEmpty(Thing?.ImageUrl))
+                    {
+                        <MudCardMedia Image="@Thing.ImageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
+                    }
+                    else
+                    {
+                        <MudPaper Outlined="true" Style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" />
+                        </MudPaper>
+                    }
+                </MudElement>
+                <MudElement Style="flex: 1 1 auto;">
+                    <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                    <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                    <MudDivider />
+                    <MudNumericField @bind-Value="_cost" Label="Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                    <MudNumericField @bind-Value="_restorationCost" Label="Restoration Cost" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                    <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                </MudElement>
             </MudCardContent>
-            @if (Thing?.ImageUrl != null)
-            {
-                <MudCardMedia Image="@Thing.ImageUrl" Alt="Thing Image" Style="max-width: 300px; max-height: auto;" />
-                @* <MudImage Src="@Thing.ImageUrl" Alt="Thing Image" Width="400" /> *@
-            }
             <MudCardActions>
                 <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
             </MudCardActions>

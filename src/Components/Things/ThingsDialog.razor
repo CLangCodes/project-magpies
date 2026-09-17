@@ -10,10 +10,9 @@
         <MudCard>
             <MudCardContent Style="display: flex; flex-direction: row; gap: 16px;">
                 <MudElement Style="flex: 0 0 200px;">
-                    @if (!string.IsNullOrEmpty(Thing?.ImageUrl))
+                    @if (!string.IsNullOrEmpty(_previewUrl) || !string.IsNullOrEmpty(Thing?.ImageUrl))
                     {
-                        <MudCardMedia Image="@_imageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
-                        @* <MudCardMedia Image="@Thing.ImageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" /> *@
+                        <MudCardMedia Image="@(_previewUrl ?? _imageUrl)" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
                     }
                     else
                     {
@@ -89,12 +88,10 @@
 
     private async Task OnFilesChanged(IBrowserFile file)
     {
-
         _fileUpload = file;
         if (string.IsNullOrEmpty(file.Name))
         {
-            @* _previewUrl = null; *@
-            @* _imageUrl = null; *@
+            _previewUrl = null;
             StateHasChanged();
             return;
         }
@@ -102,10 +99,6 @@
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         _previewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-        var relativePath = file.Name.StartsWith("wwwroot/") ? file.Name.Substring(7) : file.Name;
-        _imageUrl = file.Name;
-        if (Thing != null && !string.IsNullOrEmpty(_imageUrl))
-            Thing.ImageUrl = _imageUrl;
         StateHasChanged();
     }
 

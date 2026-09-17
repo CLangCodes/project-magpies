@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // {
+        //     "label": "dotnet watch",
+        //     "type": "process",
+        //     "command": "dotnet",
+        //     "args": [
+        //         "watch",
+        //         "${workspaceFolder}/src/src.csproj",
+        //         "/property:GenerateFullPaths=true",
+        //         "/consoleloggerparameters:NoSummary"
+        //     ],
+        //     "problemMatcher": "$msCompile",
+        //     "options": {
+        //         "cwd": "${workspaceFolder}/src/"
+        //     }
+        // }
+    ]
+}   

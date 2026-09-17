@@ -1,9 +1,10 @@
 @using ProjectMagpie.Database
 @using ProjectMagpie.Models
-
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
 @inject IRepository<Thing> ThingRepository
 @inject IWebHostEnvironment Env
-
+@inject IHttpClientFactory Http
 <MudDialog>
     <DialogContent>
         <MudCard>
@@ -11,7 +12,8 @@
                 <MudElement Style="flex: 0 0 200px;">
                     @if (!string.IsNullOrEmpty(Thing?.ImageUrl))
                     {
-                        <MudCardMedia Image="@Thing.ImageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
+                        <MudCardMedia Image="@_imageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
+                        @* <MudCardMedia Image="@Thing.ImageUrl" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" /> *@
                     }
                     else
                     {
@@ -52,9 +54,12 @@
     private decimal? _restorationCost = 0;
     private decimal? _soldFor = 0;
     private string _description = string.Empty;
-
-    private IBrowserFile? _file;
+    private string? _imageUrl;
+    private IBrowserFile? _pictureFile;
+    private IBrowserFile? _fileUpload;
     private string? _previewUrl;
+    private bool _swapping = false;
+    private string _base64 = string.Empty;
 
     protected override void OnParametersSet()
     {
@@ -65,24 +70,43 @@
             _restorationCost = Thing.RestorationCost;
             _soldFor = Thing.SoldFor;
             _description = Thing.Description;
+            _imageUrl = Thing.ImageUrl;
         } else {
             Thing = new Thing();
         }
-        
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _imageUrl = Thing?.ImageUrl;
+        if (!string.IsNullOrEmpty(_imageUrl))
+        {
+            _base64 = await ConvertImageToBase64(_imageUrl);
+        }
+        StateHasChanged();
     }
 
     private async Task OnFilesChanged(IBrowserFile file)
     {
-        _file = file;
-        if (_file == null)
+
+        _fileUpload = file;
+        if (string.IsNullOrEmpty(file.Name))
         {
-            _previewUrl = null;
+            @* _previewUrl = null; *@
+            @* _imageUrl = null; *@
+            StateHasChanged();
             return;
         }
         using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         _previewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        var relativePath = file.Name.StartsWith("wwwroot/") ? file.Name.Substring(7) : file.Name;
+        _imageUrl = file.Name;
+        if (Thing != null && !string.IsNullOrEmpty(_imageUrl))
+            Thing.ImageUrl = _imageUrl;
+        StateHasChanged();
     }
 
     private async Task Submit()
@@ -94,6 +118,7 @@
             Thing.RestorationCost = _restorationCost;
             Thing.SoldFor = _soldFor;
             Thing.Description = _description;
+            Thing.ImageUrl = _imageUrl;
 
             bool isNew = Thing.Id == 0;
             if (isNew)
@@ -101,7 +126,7 @@
             else
                 await ThingRepository.UpdateAsync(Thing);
 
-            if (_file != null)
+            if (_fileUpload != null && _fileUpload.GetHashCode() != _pictureFile?.GetHashCode())
             {
                 if (!string.IsNullOrEmpty(Thing.ImageUrl))
                 {
@@ -110,21 +135,71 @@
                         File.Delete(oldPath);
                 }
 
-                var ext = Path.GetExtension(_file.Name);
+                var ext = Path.GetExtension(_fileUpload.Name);
+                var fileName = $"{Thing.Id}_{DateTime.UtcNow.Ticks}{ext}";
                 var folder = Path.Combine(Env.WebRootPath, "ThingImages");
                 Directory.CreateDirectory(folder);
-                var path = Path.Combine(folder, $"{Thing.Id}{ext}");
+                var path = Path.Combine(folder, fileName);
 
                 await using var stream = File.Create(path);
-                await _file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
+                await _fileUpload.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
 
-                Thing.SetImageUrl(ext);
+                Thing.SetImageUrl(fileName);
                 await ThingRepository.UpdateAsync(Thing);
             }
+            StateHasChanged();
         }
 
         MudDialog.Close(DialogResult.Ok(Thing));
     }
 
+    private async Task<string> ConvertImageToBase64(string filePath)
+    {
+        try
+        {
+            // Remove leading wwwroot/ if present, as static files are served from root
+            var relativePath = filePath.StartsWith("wwwroot/") ? filePath.Substring(7) : filePath;
+            using HttpClient client = Http.CreateClient();
+            var response = await client.GetAsync(relativePath);
+            if (!response.IsSuccessStatusCode)
+                return string.Empty;
+            var imageBytes = await response.Content.ReadAsByteArrayAsync();
+            // Try to get content type from response, fallback to jpeg
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            return $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private async Task SwapPicture()
+    {
+        if (_pictureFile == null)
+        {
+            Snackbar.Add("No file selected!", Severity.Warning);
+            return;
+        }
+        if (_pictureFile.Size > 5242880)
+        {
+            Snackbar.Add("File size exceeds 5MB!", Severity.Error);
+            return;
+        }
+        _swapping = true;
+        StateHasChanged();
+        using var stream = _pictureFile.OpenReadStream(5242880); // Limit to 5MB.
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var fileBytes = memoryStream.ToArray();
+
+        // Update base64 string
+        _base64 = $"data:{_pictureFile.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
+        Snackbar.Add("Image updated successfully!", Severity.Success);
+
+        // Clear the file upload field
+        _pictureFile = null;
+        _swapping = false;
+    }
     private void Cancel() => MudDialog.Cancel();
 }

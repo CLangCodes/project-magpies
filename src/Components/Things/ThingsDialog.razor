@@ -32,6 +32,10 @@
             </MudCardContent>
             <MudCardActions>
                 <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
+                @if (!string.IsNullOrEmpty(_imageUrl))
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="RemovePicture">Remove Picture</MudButton>
+                }
             </MudCardActions>
         </MudCard>
     </DialogContent>
@@ -167,32 +171,22 @@
         }
     }
 
-    private async Task SwapPicture()
+    private async Task RemovePicture()
     {
-        if (_pictureFile == null)
+        if (!string.IsNullOrEmpty(_imageUrl))
         {
-            Snackbar.Add("No file selected!", Severity.Warning);
-            return;
-        }
-        if (_pictureFile.Size > 5242880)
-        {
-            Snackbar.Add("File size exceeds 5MB!", Severity.Error);
-            return;
-        }
-        _swapping = true;
-        StateHasChanged();
-        using var stream = _pictureFile.OpenReadStream(5242880); // Limit to 5MB.
-        using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
-        var fileBytes = memoryStream.ToArray();
+            @* var oldPath = Path.Combine(Env.WebRootPath, Thing.ImageUrl);
+            if (File.Exists(oldPath))
+                File.Delete(oldPath); *@
 
-        // Update base64 string
-        _base64 = $"data:{_pictureFile.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
-        Snackbar.Add("Image updated successfully!", Severity.Success);
-
-        // Clear the file upload field
-        _pictureFile = null;
-        _swapping = false;
+            @* Thing.SetImageUrl(null); *@
+            @* await ThingRepository.UpdateAsync(Thing); *@
+            _imageUrl = null;
+            @* _base64 = string.Empty; *@
+            @* Snackbar.Add("Image removed successfully!", Severity.Success); *@
+            StateHasChanged();
+        }
     }
+
     private void Cancel() => MudDialog.Cancel();
 }

@@ -10,9 +10,10 @@
         <MudCard>
             <MudCardContent Style="display: flex; flex-direction: row; gap: 16px;">
                 <MudElement Style="flex: 0 0 200px;">
-                    @if (!string.IsNullOrEmpty(_previewUrl) || !string.IsNullOrEmpty(Thing?.ImageUrl))
+                    @if (!string.IsNullOrEmpty(_imageUrl))
                     {
-                        <MudCardMedia Image="@(_previewUrl ?? _imageUrl)" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
+                        @_imageUrl
+                        <MudCardMedia Image="@(_imageUrl)" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
                     }
                     else
                     {
@@ -60,7 +61,6 @@
     private string? _imageUrl;
     private IBrowserFile? _pictureFile;
     private IBrowserFile? _fileUpload;
-    private string? _previewUrl;
     private bool _swapping = false;
     private string _base64 = string.Empty;
 
@@ -95,14 +95,14 @@
         _fileUpload = file;
         if (string.IsNullOrEmpty(file.Name))
         {
-            _previewUrl = null;
+            _imageUrl = null;
             StateHasChanged();
             return;
         }
         using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        _previewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        _imageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
         StateHasChanged();
     }
 
@@ -110,6 +110,16 @@
     {
         if (Thing != null)
         {
+            if (string.IsNullOrEmpty(_imageUrl))
+            {
+                var fileName = Thing.ImageUrl;
+                if (!string.IsNullOrEmpty(fileName))
+                {
+                    var oldPath = Path.Combine(Env.WebRootPath, fileName);
+                    if (File.Exists(oldPath))
+                        File.Delete(oldPath);
+                }
+            }
             Thing.Name = _name;
             Thing.Cost = _cost;
             Thing.RestorationCost = _restorationCost;
@@ -140,10 +150,11 @@
 
                 await using var stream = File.Create(path);
                 await _fileUpload.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
-
+                
                 Thing.SetImageUrl(fileName);
                 await ThingRepository.UpdateAsync(Thing);
             }
+            
             StateHasChanged();
         }
 

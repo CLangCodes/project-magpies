@@ -12,7 +12,6 @@
                 <MudElement Style="flex: 0 0 200px;">
                     @if (!string.IsNullOrEmpty(_imageUrl))
                     {
-                        @_imageUrl
                         <MudCardMedia Image="@(_imageUrl)" Style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px;" />
                     }
                     else

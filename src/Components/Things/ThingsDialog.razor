@@ -58,10 +58,7 @@
     private decimal? _soldFor = 0;
     private string _description = string.Empty;
     private string? _imageUrl;
-    private IBrowserFile? _pictureFile;
     private IBrowserFile? _fileUpload;
-    private bool _swapping = false;
-    private string _base64 = string.Empty;
 
     protected override void OnParametersSet()
     {
@@ -75,16 +72,6 @@
             _imageUrl = Thing.ImageUrl;
         } else {
             Thing = new Thing();
-        }
-        StateHasChanged();
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        _imageUrl = Thing?.ImageUrl;
-        if (!string.IsNullOrEmpty(_imageUrl))
-        {
-            _base64 = await ConvertImageToBase64(_imageUrl);
         }
         StateHasChanged();
     }
@@ -132,15 +119,8 @@
             else
                 await ThingRepository.UpdateAsync(Thing);
 
-            if (_fileUpload != null && _fileUpload.GetHashCode() != _pictureFile?.GetHashCode())
+            if (_fileUpload != null)
             {
-                @* if (!string.IsNullOrEmpty(Thing.ImageUrl))
-                {
-                    var oldPath = Path.Combine(Env.WebRootPath, Thing.ImageUrl);
-                    if (File.Exists(oldPath))
-                        File.Delete(oldPath);
-                } *@
-
                 var ext = Path.GetExtension(_fileUpload.Name);
                 var fileName = $"{Thing.Id}_{DateTime.UtcNow.Ticks}{ext}";
                 var folder = Path.Combine(Env.WebRootPath, "ThingImages");
@@ -160,42 +140,10 @@
         MudDialog.Close(DialogResult.Ok(Thing));
     }
 
-    private async Task<string> ConvertImageToBase64(string filePath)
-    {
-        try
-        {
-            // Remove leading wwwroot/ if present, as static files are served from root
-            var relativePath = filePath.StartsWith("wwwroot/") ? filePath.Substring(7) : filePath;
-            using HttpClient client = Http.CreateClient();
-            var response = await client.GetAsync(relativePath);
-            if (!response.IsSuccessStatusCode)
-                return string.Empty;
-            var imageBytes = await response.Content.ReadAsByteArrayAsync();
-            // Try to get content type from response, fallback to jpeg
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-            return $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
-
     private async Task RemovePicture()
     {
-        if (!string.IsNullOrEmpty(_imageUrl))
-        {
-            @* var oldPath = Path.Combine(Env.WebRootPath, Thing.ImageUrl);
-            if (File.Exists(oldPath))
-                File.Delete(oldPath); *@
-
-            @* Thing.SetImageUrl(null); *@
-            @* await ThingRepository.UpdateAsync(Thing); *@
-            _imageUrl = null;
-            @* _base64 = string.Empty; *@
-            @* Snackbar.Add("Image removed successfully!", Severity.Success); *@
-            StateHasChanged();
-        }
+        _imageUrl = null;
+        StateHasChanged();
     }
 
     private void Cancel() => MudDialog.Cancel();

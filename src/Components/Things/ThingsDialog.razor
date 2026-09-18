@@ -109,7 +109,7 @@
     {
         if (Thing != null)
         {
-            if (string.IsNullOrEmpty(_imageUrl))
+            if (string.IsNullOrEmpty(_imageUrl) || _imageUrl != Thing.ImageUrl)
             {
                 var fileName = Thing.ImageUrl;
                 if (!string.IsNullOrEmpty(fileName))
@@ -134,12 +134,12 @@
 
             if (_fileUpload != null && _fileUpload.GetHashCode() != _pictureFile?.GetHashCode())
             {
-                if (!string.IsNullOrEmpty(Thing.ImageUrl))
+                @* if (!string.IsNullOrEmpty(Thing.ImageUrl))
                 {
                     var oldPath = Path.Combine(Env.WebRootPath, Thing.ImageUrl);
                     if (File.Exists(oldPath))
                         File.Delete(oldPath);
-                }
+                } *@
 
                 var ext = Path.GetExtension(_fileUpload.Name);
                 var fileName = $"{Thing.Id}_{DateTime.UtcNow.Ticks}{ext}";

@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 
 using src.Components;
 using ProjectMagpie.Database;
+using ProjectMagpie.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +20,7 @@ builder.Services.AddHttpClient("ProjectMagpie", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? "https://localhost:5001");
 });
-
+builder.Services.AddScoped<IImageService, ImageService>();
 // Add MudBlazor services
 builder.Services.AddMudServices();
 

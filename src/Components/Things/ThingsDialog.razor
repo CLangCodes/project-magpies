@@ -1,8 +1,11 @@
 @using ProjectMagpie.Database
 @using ProjectMagpie.Models
+@using ProjectMagpie.Services
 @rendermode InteractiveServer
 @inject IRepository<Thing> ThingRepository
 @inject IWebHostEnvironment Env
+@inject IImageService ImageService
+
 <MudDialog>
     <DialogContent>
         <MudCard>
@@ -56,7 +59,8 @@
     private decimal? _soldFor = 0;
     private string _description = string.Empty;
     private string? _imageUrl;
-    private IBrowserFile? _fileUpload;
+    private byte[]? _fileBytes;
+    private string? _fileName;
 
     protected override void OnParametersSet()
     {
@@ -76,9 +80,10 @@
 
     private async Task OnFilesChanged(IBrowserFile file)
     {
-        _fileUpload = file;
         if (string.IsNullOrEmpty(file.Name))
         {
+            _fileBytes = null;
+            _fileName = null;
             _imageUrl = null;
             StateHasChanged();
             return;
@@ -86,7 +91,9 @@
         using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        _imageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        _fileBytes = ms.ToArray();
+        _fileName = file.Name;
+        _imageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(_fileBytes)}";
         StateHasChanged();
     }
 
@@ -94,16 +101,11 @@
     {
         if (Thing != null)
         {
-            if (string.IsNullOrEmpty(_imageUrl) || _imageUrl != Thing.ImageUrl)
-            {
-                var fileName = Thing.ImageUrl;
-                if (!string.IsNullOrEmpty(fileName))
-                {
-                    var oldPath = Path.Combine(Env.WebRootPath, fileName);
-                    if (File.Exists(oldPath))
-                        File.Delete(oldPath);
-                }
-            }
+            if (string.IsNullOrEmpty(_imageUrl) 
+                    || _imageUrl != Thing.ImageUrl 
+                    && Thing.ImageUrl != null)
+                await ImageService.DeleteImage(Thing.ImageUrl!);
+
             Thing.Name = _name;
             Thing.Cost = _cost;
             Thing.RestorationCost = _restorationCost;
@@ -117,18 +119,10 @@
             else
                 await ThingRepository.UpdateAsync(Thing);
 
-            if (_fileUpload != null)
+            if (_fileBytes != null && _fileName != null)
             {
-                var ext = Path.GetExtension(_fileUpload.Name);
-                var fileName = $"{Thing.Id}_{DateTime.UtcNow.Ticks}{ext}";
-                var folder = Path.Combine(Env.WebRootPath, "ThingImages");
-                Directory.CreateDirectory(folder);
-                var path = Path.Combine(folder, fileName);
-
-                await using var stream = File.Create(path);
-                await _fileUpload.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
-                
-                Thing.SetImageUrl(fileName);
+                using var stream = new MemoryStream(_fileBytes);
+                Thing.ImageUrl = await ImageService.UploadImage(stream, _fileName, Thing.Id);
                 await ThingRepository.UpdateAsync(Thing);
             }
             
@@ -141,6 +135,8 @@
     private async Task RemovePicture()
     {
         _imageUrl = null;
+        _fileBytes = null;
+        _fileName = null;
         StateHasChanged();
     }
 

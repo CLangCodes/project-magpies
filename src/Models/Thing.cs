@@ -9,6 +9,5 @@ public class Thing
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
 
-    public void SetImageUrl(string fileName) => ImageUrl = "ThingImages/" + fileName;
-    public void DeleteImageUrl() => ImageUrl = null; 
+    public void DeleteImageUrl() => ImageUrl = null;
 }

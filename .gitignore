@@ -482,3 +482,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Runtime SQLite database (ProjectMagpie)
+src/things.db
+src/things.db-shm
+src/things.db-wal
+
+# User-uploaded images (runtime data)
+src/wwwroot/ThingImages/*
+!src/wwwroot/ThingImages/.gitkeep

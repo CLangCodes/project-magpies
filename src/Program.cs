@@ -16,10 +16,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-builder.Services.AddHttpClient("ProjectMagpie", client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? "https://localhost:5001");
-});
 builder.Services.AddScoped<IImageService, ImageService>();
 // Add MudBlazor services
 builder.Services.AddMudServices();

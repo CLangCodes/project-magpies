@@ -5,6 +5,7 @@
 @inject IRepository<Thing> ThingRepository
 @inject IWebHostEnvironment Env
 @inject IImageService ImageService
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -78,9 +79,9 @@
         StateHasChanged();
     }
 
-    private async Task OnFilesChanged(IBrowserFile file)
+    private async Task OnFilesChanged(IBrowserFile? file)
     {
-        if (string.IsNullOrEmpty(file.Name))
+        if (file is null || string.IsNullOrEmpty(file.Name))
         {
             _fileBytes = null;
             _fileName = null;
@@ -88,12 +89,22 @@
             StateHasChanged();
             return;
         }
-        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        _fileBytes = ms.ToArray();
-        _fileName = file.Name;
-        _imageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(_fileBytes)}";
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _fileBytes = ms.ToArray();
+            _fileName = file.Name;
+            _imageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(_fileBytes)}";
+        }
+        catch (IOException ex)
+        {
+            _fileBytes = null;
+            _fileName = null;
+            _imageUrl = Thing?.ImageUrl;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         StateHasChanged();
     }
 
@@ -111,7 +122,9 @@
             Thing.RestorationCost = _restorationCost;
             Thing.SoldFor = _soldFor;
             Thing.Description = _description;
-            Thing.ImageUrl = _imageUrl;
+            // Don't persist the base64 preview data-URI: when a new file is pending upload
+            // (_fileBytes != null), keep the existing ImageUrl until the real upload succeeds below.
+            Thing.ImageUrl = _fileBytes != null ? Thing.ImageUrl : _imageUrl;
 
             bool isNew = Thing.Id == 0;
             if (isNew)
@@ -121,11 +134,20 @@
 
             if (_fileBytes != null && _fileName != null)
             {
-                using var stream = new MemoryStream(_fileBytes);
-                Thing.ImageUrl = await ImageService.UploadImage(stream, _fileName, Thing.Id);
-                await ThingRepository.UpdateAsync(Thing);
+                try
+                {
+                    using var stream = new MemoryStream(_fileBytes);
+                    Thing.ImageUrl = await ImageService.UploadImage(stream, _fileName, Thing.Id);
+                    await ThingRepository.UpdateAsync(Thing);
+                }
+                catch (ImageValidationException ex)
+                {
+                    Snackbar.Add(ex.Message, Severity.Error);
+                    StateHasChanged();
+                    return;
+                }
             }
-            
+
             StateHasChanged();
         }
 

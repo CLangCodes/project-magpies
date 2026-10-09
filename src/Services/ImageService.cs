@@ -4,6 +4,7 @@ public abstract class ImageValidationException(string message) : Exception(messa
 public sealed class UnsupportedImageTypeException(string message) : ImageValidationException(message);
 public sealed class InvalidImageContentException(string message) : ImageValidationException(message);
 public sealed class ImageTooLargeException(string message) : ImageValidationException(message);
+public sealed record ImageStorageOptions(string FolderPath, string RequestPath);
 
 public interface IImageService
 {
@@ -19,10 +20,10 @@ public interface IImageService
     Task DeleteImage(string FilePath);
 }
 
-public class ImageService(IWebHostEnvironment Env) : IImageService
+public class ImageService(ImageStorageOptions Storage) : IImageService
 {
     private const long MaxFileSizeBytes = 10 * 1024 * 1024;
-    private static readonly string[] AllowedExtensions = [".png", ".jpg", ".jpeg", ".gif"];
+    private static readonly string[] AllowedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 
     private static readonly (byte[] Signature, string Extension)[] KnownSignatures =
     [
@@ -30,6 +31,7 @@ public class ImageService(IWebHostEnvironment Env) : IImageService
         ([0xFF, 0xD8, 0xFF], "jpg"),
         ([0x47, 0x49, 0x46, 0x38, 0x37, 0x61], "gif"),
         ([0x47, 0x49, 0x46, 0x38, 0x39, 0x61], "gif"),
+        ([0x52, 0x49, 0x46, 0x46], "webp"),
     ];
 
     async Task<string> IImageService.UploadImage(Stream fileStream, string fileName, int thingId)
@@ -44,7 +46,7 @@ public class ImageService(IWebHostEnvironment Env) : IImageService
             throw new InvalidImageContentException("The uploaded file's content does not match a supported image format.");
 
         var newFileName = $"{thingId}_{DateTime.UtcNow.Ticks}{ext}";
-        var folder = Path.Combine(Env.WebRootPath, "ThingImages");
+        var folder = Storage.FolderPath;
         Directory.CreateDirectory(folder);
         var path = Path.Combine(folder, newFileName);
 
@@ -98,8 +100,8 @@ public class ImageService(IWebHostEnvironment Env) : IImageService
         string imagesRoot, candidatePath;
         try
         {
-            imagesRoot = Path.GetFullPath(Path.Combine(Env.WebRootPath, "ThingImages") + Path.DirectorySeparatorChar);
-            candidatePath = Path.GetFullPath(Path.Combine(Env.WebRootPath, FileName));
+            imagesRoot = Path.GetFullPath(Storage.FolderPath + Path.DirectorySeparatorChar);
+            candidatePath = Path.GetFullPath(Path.Combine(Storage.FolderPath, Path.GetFileName(FileName)));
         }
         catch (Exception ex) when (ex is ArgumentException or PathTooLongException or NotSupportedException)
         {

@@ -6,10 +6,22 @@ using Microsoft.Data.Sqlite;
 using src.Components;
 using ProjectMagpie.Database;
 using ProjectMagpie.Services;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddUserSecrets<Program>();
+
+
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("ProjectMagpie")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
@@ -23,8 +35,23 @@ builder.Services.AddMudServices();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+var imagesFolder = builder.Configuration["ImageStorage:Path"];
+if (string.IsNullOrWhiteSpace(imagesFolder))
+    imagesFolder = Path.Combine(builder.Environment.WebRootPath, "ThingImages");
+else if (!Path.IsPathRooted(imagesFolder))
+    imagesFolder = Path.Combine(builder.Environment.ContentRootPath, imagesFolder);
+
+Directory.CreateDirectory(imagesFolder);
+builder.Services.AddSingleton(new ImageStorageOptions(imagesFolder, "/ThingImages"));
 
 var app = builder.Build();
+
+using (var db = app.Services
+    .GetRequiredService<IDbContextFactory<ApplicationDbContext>>()
+    .CreateDbContext())
+{
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -40,8 +67,13 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
-Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "ThingImages"));
+// Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "ThingImages"));
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imagesFolder),
+    RequestPath = "/ThingImages"
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

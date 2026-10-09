@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    ports:
+      - "${MAGPIE_PORT:-8080}:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - DataProtection__KeysPath=/app/keys
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/projectmagpie.db
+      - ImageStorage__Path=/app/data/ThingImages
+    volumes:
+      - magpie-data:/app/data
+      - magpie-keys:/app/keys
+
+volumes:
+  magpie-data:
+  magpie-keys:

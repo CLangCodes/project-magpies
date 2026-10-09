@@ -8,6 +8,9 @@
     <UserSecretsId>b59e9b8e-fe48-4a22-930d-57b37f4ce58c</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <DockerfileRunArguments>-v magpie-data:/app/data</DockerfileRunArguments>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />

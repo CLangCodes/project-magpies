@@ -23,6 +23,8 @@
                         </MudPaper>
                     }
                 </MudElement>
+            </MudCardContent>
+            <MudCardContent Style="display: flex; flex-direction: row; gap: 16px;">
                 <MudElement Style="flex: 1 1 auto;">
                     <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
                     <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
@@ -32,8 +34,15 @@
                     <MudNumericField @bind-Value="_soldFor" Label="Sold For" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
                 </MudElement>
             </MudCardContent>
-            <MudCardActions>
-                <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" />
+            <MudCardActions Style="align-items: flex-start; gap: 8px;">
+                <MudFileUpload @ref="_upload" T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".png,.jpg,.jpeg,.gif" >
+                    <SelectedTemplate>
+                        @if (context is not null)
+                        {
+                            <MudText Typo="Typo.caption" Class="ml-2">@context.Name</MudText>
+                        }
+                    </SelectedTemplate>
+                </MudFileUpload>
                 @if (!string.IsNullOrEmpty(_imageUrl))
                 {
                     <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="RemovePicture">Remove Picture</MudButton>
@@ -50,7 +59,7 @@
 @code {
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
-
+    private MudFileUpload<IBrowserFile>? _upload;
     [Parameter]
     public Thing? Thing { get; set; }
 
@@ -159,6 +168,7 @@
         _imageUrl = null;
         _fileBytes = null;
         _fileName = null;
+        if (_upload is not null) await _upload.ClearAsync();
         StateHasChanged();
     }
 

@@ -1,11 +1,13 @@
 services:
   web:
+    image: clangcodes/project-magpie:${PROJECT_MAGPIE_TAG:-latest}
     build: .
+    restart: unless-stopped
     ports:
-      - "${MAGPIE_PORT:-8080}:8080"
+      - "${MAGPIE_PORT:-5029}:5029"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTP_PORTS=5029
       - DataProtection__KeysPath=/app/keys
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/projectmagpie.db
       - ImageStorage__Path=/app/data/ThingImages
